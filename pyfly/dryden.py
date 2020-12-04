@@ -10,9 +10,13 @@ class Filter:
         :param num: numerator of transfer function
         :param den: denominator of transfer function
         """
+        # lti: Continuous-time linear time invariant system base class
         self.filter = lti(num, den)
+        # actual state
         self.x = None
+        # actual value
         self.y = None
+        # actual time
         self.t = None
 
     def simulate(self, u, t):
@@ -22,18 +26,21 @@ class Filter:
         :param t: time steps for which to simulate
         :return: filter output
         """
+        # init state as None or last known state
         if self.x is None:
             x_0 = None
         else:
             x_0 = self.x[-1]
 
+        # get response for given state and input
         self.t, self.y, self.x = self.filter.output(U=u, T=t, X0=x_0)
 
+        # return actual value TODO: check if only one value or array
         return self.y
 
     def reset(self):
         """
-        Reset filter
+        Reset sim environment
         :return:
         """
         self.x = None
@@ -63,7 +70,9 @@ class DrydenGustModel:
         knots2mpers = 0.5144
 
         if intensity is None:
-            W_20 = 15 * knots2mpers  # light turbulence
+            W_20 = (
+                15 * knots2mpers
+            )  # light turbulence TODO: why light turbulence here? Use light as default?
         elif intensity == "light":
             W_20 = 15 * knots2mpers  # light turbulence
         elif intensity == "moderate":
@@ -89,6 +98,7 @@ class DrydenGustModel:
         L_v = L_u
         L_w = h
 
+        # do math as described in paper TODO: reference paper
         K_u = sigma_u * math.sqrt((2 * L_u) / (math.pi * V_a))
         K_v = sigma_v * math.sqrt((L_v) / (math.pi * V_a))
         K_w = sigma_w * math.sqrt((L_w) / (math.pi * V_a))
@@ -99,7 +109,12 @@ class DrydenGustModel:
         T_w1 = math.sqrt(3.0) * L_w / V_a
         T_w2 = L_w / V_a
 
-        K_p = sigma_w * math.sqrt(0.8 / V_a) * ((math.pi / (4 * b)) ** (1 / 6)) / ((L_w) ** (1 / 3))
+        K_p = (
+            sigma_w
+            * math.sqrt(0.8 / V_a)
+            * ((math.pi / (4 * b)) ** (1 / 6))
+            / ((L_w) ** (1 / 3))
+        )
         K_q = 1 / V_a
         K_r = K_q
 
@@ -107,15 +122,29 @@ class DrydenGustModel:
         T_q = T_p
         T_r = 3 * b / (math.pi * V_a)
 
-        self.filters = {"H_u": Filter(feet2meters * K_u, [T_u, 1]),
-                        "H_v": Filter([feet2meters * K_v * T_v1, feet2meters * K_v], [T_v2 ** 2, 2 * T_v2, 1]),
-                        "H_w": Filter([feet2meters * K_w * T_w1, feet2meters * K_w], [T_w2 ** 2, 2 * T_w2, 1]),
-                        "H_p": Filter(K_p, [T_p, 1]),
-                        "H_q": Filter([-K_w * K_q * T_w1, -K_w * K_q, 0], [T_q * T_w2 ** 2, T_w2 ** 2 + 2 * T_q * T_w2, T_q + 2 * T_w2, 1]),
-                        "H_r": Filter([K_v * K_r * T_v1, K_v * K_r, 0], [T_r * T_v2 ** 2, T_v2 ** 2 + 2 * T_r * T_v2, T_r + 2 * T_v2, 1]),}
+        # set filters
+        self.filters = {
+            "H_u": Filter(feet2meters * K_u, [T_u, 1]),
+            "H_v": Filter(
+                [feet2meters * K_v * T_v1, feet2meters * K_v], [T_v2 ** 2, 2 * T_v2, 1]
+            ),
+            "H_w": Filter(
+                [feet2meters * K_w * T_w1, feet2meters * K_w], [T_w2 ** 2, 2 * T_w2, 1]
+            ),
+            "H_p": Filter(K_p, [T_p, 1]),
+            "H_q": Filter(
+                [-K_w * K_q * T_w1, -K_w * K_q, 0],
+                [T_q * T_w2 ** 2, T_w2 ** 2 + 2 * T_q * T_w2, T_q + 2 * T_w2, 1],
+            ),
+            "H_r": Filter(
+                [K_v * K_r * T_v1, K_v * K_r, 0],
+                [T_r * T_v2 ** 2, T_v2 ** 2 + 2 * T_r * T_v2, T_r + 2 * T_v2, 1],
+            ),
+        }
 
-        self.np_random = None
-        self.seed()
+        # create RandomState
+        self.np_random = None  # TODO: why not directly init correctly
+        self.seed()  # TODO: why is this an extra function?
 
         self.dt = dt
         self.sim_length = None
@@ -134,6 +163,11 @@ class DrydenGustModel:
         self.np_random = np.random.RandomState(seed)
 
     def _generate_noise(self, size):
+        """
+        Create normal gaussian noise.
+        :param size: (int) size. # TODO: What size?
+        :return: TODO: array of random samples of gaussian noise?
+        """
         return np.sqrt(np.pi / self.dt) * self.np_random.standard_normal(size=(4, size))
 
     def reset(self, noise=None):
@@ -158,10 +192,13 @@ class DrydenGustModel:
     def simulate(self, length):
         """
         Simulate turbulence by passing band-limited Gaussian noise of length length through the shaping filters.
-        :param length: (int) the number of steps to simulate.
+        :param length: (int) the number of steps to simulate. # TODO: maybe rename to timesteps?
         :return:
         """
-        t_span = [self.sim_length, self.sim_length + length]
+        t_span = [
+            self.sim_length,
+            self.sim_length + length,
+        ]  # TODO: rename sim_length to sim_timestep?
 
         t = np.linspace(t_span[0] * self.dt, t_span[1] * self.dt, length)
 
@@ -169,28 +206,48 @@ class DrydenGustModel:
             noise = self._generate_noise(t.shape[0])
         else:
             if self.noise.shape[-1] >= t_span[1]:
-                noise = self.noise[:, t_span[0]:t_span[1]]
+                noise = self.noise[:, t_span[0] : t_span[1]]
             else:
                 noise_start_i = t_span[0] % self.noise.shape[-1]
                 remaining_noise_length = self.noise.shape[-1] - noise_start_i
                 if remaining_noise_length >= length:
-                    noise = self.noise[:, noise_start_i:noise_start_i + length]
+                    noise = self.noise[:, noise_start_i : noise_start_i + length]
                 else:
                     if length - remaining_noise_length > self.noise.shape[-1]:
-                        concat_noise = np.pad(self.noise,
-                                              ((0, 0), (0, length - remaining_noise_length - self.noise.shape[-1])),
-                                              mode="wrap")
+                        concat_noise = np.pad(
+                            self.noise,
+                            (
+                                (0, 0),
+                                (
+                                    0,
+                                    length
+                                    - remaining_noise_length
+                                    - self.noise.shape[-1],
+                                ),
+                            ),
+                            mode="wrap",
+                        )
                     else:
-                        concat_noise = self.noise[:, :length - remaining_noise_length]
-                    noise = np.concatenate((self.noise[:, noise_start_i:], concat_noise), axis=-1)
+                        concat_noise = self.noise[:, : length - remaining_noise_length]
+                    noise = np.concatenate(
+                        (self.noise[:, noise_start_i:], concat_noise), axis=-1
+                    )
 
-        vel_lin = np.array([self.filters["H_u"].simulate(noise[0], t),
-                            self.filters["H_v"].simulate(noise[1], t),
-                            self.filters["H_w"].simulate(noise[2], t)])
+        vel_lin = np.array(
+            [
+                self.filters["H_u"].simulate(noise[0], t),
+                self.filters["H_v"].simulate(noise[1], t),
+                self.filters["H_w"].simulate(noise[2], t),
+            ]
+        )
 
-        vel_ang = np.array([self.filters["H_p"].simulate(noise[3], t),
-                            self.filters["H_q"].simulate(noise[1], t),
-                            self.filters["H_r"].simulate(noise[2], t)])
+        vel_ang = np.array(
+            [
+                self.filters["H_p"].simulate(noise[3], t),
+                self.filters["H_q"].simulate(noise[1], t),
+                self.filters["H_r"].simulate(noise[2], t),
+            ]
+        )
 
         if self.vel_lin is None:
             self.vel_lin = vel_lin
