@@ -143,8 +143,8 @@ class DrydenGustModel:
         }
 
         # create RandomState
-        self.np_random = None  # TODO: why not directly init correctly
-        self.seed()  # TODO: why is this an extra function?
+        self.np_random = None
+        self.seed()
 
         self.dt = dt
         self.sim_length = None
@@ -160,6 +160,7 @@ class DrydenGustModel:
         :param seed: (int) seed.
         :return:
         """
+        # used
         self.np_random = np.random.RandomState(seed)
 
     def _generate_noise(self, size):
@@ -195,6 +196,7 @@ class DrydenGustModel:
         :param length: (int) the number of steps to simulate. # TODO: maybe rename to timesteps?
         :return:
         """
+        # used
         t_span = [
             self.sim_length,
             self.sim_length + length,

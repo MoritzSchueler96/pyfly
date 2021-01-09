@@ -3,6 +3,7 @@ import numpy as np
 
 class PIDController:
     def __init__(self, dt=0.01):
+        #used
 
         # init one PI controllers for velocity and two PID controller for phi and theta
         self.k_p_V = 0.5
@@ -40,6 +41,7 @@ class PIDController:
         :param va: velocity.
         :return:
         """
+        #used
         self.va_r = va
         self.phi_r = phi
         self.theta_r = theta
@@ -62,7 +64,7 @@ class PIDController:
         :param omega: #TODO: describe omega
         :return:
         """
-
+        #used
         # calculate control deviation (P)
         e_V_a = va - self.va_r
         e_phi = phi - self.phi_r

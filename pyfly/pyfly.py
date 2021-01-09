@@ -46,7 +46,7 @@ class Variable:
         :param label: (string) label given to state in plots
         :param wrap: (bool) whether to wrap state value in region [-pi, pi]
         """
-
+        # used
         # set values
         self.value_min = value_min
         self.value_max = value_max
@@ -83,9 +83,9 @@ class Variable:
     def reset(self, value=None):
         """
         Reset object to initial state.
-
         :param value: (float) initial value of state
         """
+        # used
         self.history = []
 
         # sample value uniformly from min and max values if not provided
@@ -108,6 +108,7 @@ class Variable:
         Seed random number generator of state
         :param seed: (int) seed of random state
         """
+        # used
         self.np_random = np.random.RandomState(seed)
 
     def apply_conditions(self, value):  # TODO: rename to apply constraints?
@@ -116,6 +117,7 @@ class Variable:
         :param value: (float) value to which limits and constraints are applied
         :return: (float) value after applying limits and constraints
         """
+        # used
         if self.constraint_min is not None and value < self.constraint_min:
             raise ConstraintException(self.name, value, self.constraint_min)
 
@@ -136,6 +138,7 @@ class Variable:
         :param value: (float) new value of state
         :param save: (bool) whether to commit value to history of state
         """
+        # used
         value = self.apply_conditions(value)
 
         if save:
@@ -152,10 +155,9 @@ class Variable:
         :param plot_id: (string or int or None) identifier of parent plot object. Allows state to plot to multiple figures at a time.
         :param plot_kw: (dict) plot keyword arguments passed to matplotlib.pyplot.plot
         """
-
-        def linear_scaling(
-            val, old_min, old_max, new_min, new_max
-        ):  # TODO: function definition inside function?
+        # used
+        def linear_scaling(val, old_min, old_max, new_min, new_max):
+            # used
             return (new_max - np.sign(old_min) * (-new_min)) / (old_max - old_min) * (
                 np.array(val) - old_max
             ) + new_max
@@ -243,6 +245,7 @@ class Variable:
         Close plot with id plot_id.
         :param plot_id: (string or int) identifier of parent plot object
         """
+        # used
         self.lines[plot_id] = None
         self.target_lines[plot_id] = None
         self.target_bounds[plot_id] = None
@@ -252,6 +255,7 @@ class Variable:
         Get plot data from variable history.
         :return: ([int], [float]) x plot data, y plot data
         """
+        # used
         x = list(range(len(self.history)))
         y = self.history
         return x, y
@@ -279,6 +283,7 @@ class ControlVariable(Variable):
         :param disabled: (bool) if actuator is disabled for aircraft, e.g. aircraft has no rudder
         :param kwargs: (dict) keyword arguments for Variable class
         """
+        # used
         assert disabled or (order == 1 or order == 2)
         super().__init__(**kwargs)
         self.order = order
@@ -310,6 +315,7 @@ class ControlVariable(Variable):
         :param value: (float) value to which limits and constraints is applied
         :return: (float) value after applying limits and constraints
         """
+        # used
         try:
             value, dot = values
         except:
@@ -326,6 +332,7 @@ class ControlVariable(Variable):
         Set setpoint for actuator and commit to history of state
         :param command: setpoint for actuator #TODO: add better description
         """
+        # used
         command = super().apply_conditions(command)
         self.command = command
         self.history["command"].append(command)
@@ -335,6 +342,7 @@ class ControlVariable(Variable):
         Reset object to initial state.
         :param value: (list) initial value, derivative and setpoint of state
         """
+        # used
         self.history = {"value": [], "dot": [], "command": []}
 
         # sample value uniformly between min and max values if not provided explicitely
@@ -363,6 +371,7 @@ class ControlVariable(Variable):
         :param value: (float) new value and derivative of state
         :param save: (bool) whether to commit value to history of state
         """
+        # used
         value, dot = self.apply_conditions(value)
 
         self.value = value
@@ -377,6 +386,7 @@ class ControlVariable(Variable):
         Get plot data from variable history, for the quantity designated by the attribute plot_quantity.
         :return: ([int], [float]) x plot data, y plot data
         """
+        # used
         y = self.history[self.plot_quantity]
         x = list(range(len(y)))
         return x, y
@@ -390,6 +400,7 @@ class ControlVariable(Variable):
 
 class EnergyVariable(Variable):
     def __init__(self, mass=None, inertia_matrix=None, gravity=None, **kwargs):
+        # used
         super().__init__(**kwargs)
         self.required_variables = []
         self.variables = {}
@@ -413,9 +424,11 @@ class EnergyVariable(Variable):
             self.required_variables.append("Va")
 
     def add_requirement(self, name, variable):
+        # used
         self.variables[name] = variable
 
     def calculate_value(self):
+        # used
         val = 0
         if self.name == "energy_potential" or self.name == "energy_total":
             val += self.mass * self.gravity * (-self.variables["position_d"].value)
@@ -445,6 +458,7 @@ class Actuation:
         :param actuator_inputs: ([string]) the user configured actuator input states
         :param dynamics: ([string]) the user configured actuator states to simulate dynamics for
         """
+        # used
         self.states = {}
         self.coefficients = [[np.array([]) for _ in range(3)] for __ in range(2)]
         self.elevon_dynamics = False
@@ -461,6 +475,7 @@ class Actuation:
         :param save: (bool) whether to commit values to state history
         :return:
         """
+        # used
         for i, state in enumerate(self.dynamics):
             self.states[state].set_value(
                 (values[i], values[len(self.dynamics) + i]), save=save
@@ -482,6 +497,7 @@ class Actuation:
         :param state: (ControlVariable) actuator state
         :return:
         """
+        # used
         self.states[state.name] = state
         if state.name in self.dynamics:
             for i in range(2):
@@ -495,6 +511,7 @@ class Actuation:
         Get state values and derivatives for states in actuator dynamics.
         :return: ([float]) list of state values + list of state derivatives
         """
+        # used
         return [self.states[state].value for state in self.dynamics] + [
             self.states[state].dot for state in self.dynamics
         ]
@@ -505,6 +522,7 @@ class Actuation:
         :param setpoints: ([float] or None) setpoints for actuators. If None, setpoints are set as the current command of the dynamics variable
         :return: ([float]) right hand side of actuator differential equation.
         """
+        # used
         if setpoints is None:
             setpoints = [self.states[state].command for state in self.dynamics]
         states = [self.states[state].value for state in self.dynamics]
@@ -530,7 +548,7 @@ class Actuation:
         :param commands: ([float]) raw commands
         :return: ([float]) constrained commands
         """
-
+        # used
         # TODO: describe
         dynamics_commands = {}
         if self.elevon_dynamics and "elevator" and "aileron" in self.inputs:
@@ -567,7 +585,7 @@ class Actuation:
         """
         Assert valid configuration of actuator dynamics and set actuator state limits if applicable.
         """
-
+        # used
         # Check if config is valid
         if "elevon_left" in self.dynamics or "elevon_right" in self.dynamics:
             assert (
@@ -609,6 +627,7 @@ class Actuation:
         Reset state.
         :param state_init: ([float]) the state values to initialize to.
         """
+        # used
         for state in self.dynamics:
             init = None
             if state_init is not None and state in state_init:
@@ -624,11 +643,13 @@ class Actuation:
             self.states["aileron"].reset(value=ail)
 
     def _map_elevail_to_elevon(self, elev, ail):
+        # used
         er = -1 * ail + elev
         el = ail + elev
         return er, el
 
     def _map_elevon_to_elevail(self, er, el):
+        # used
         ail = (-er + el) / 2
         elev = (er + el) / 2
         return elev, ail
@@ -639,11 +660,13 @@ class AttitudeQuaternion:
         """
         Quaternion attitude representation used by PyFly.
         """
+        # used
         self.quaternion = None
         self.euler_angles = {"roll": None, "pitch": None, "yaw": None}
         self.history = None
 
     def seed(self, seed):  # TODO: needed? What does this do?
+        # used
         return
 
     def reset(self, euler_init):
@@ -651,6 +674,7 @@ class AttitudeQuaternion:
         Reset state of attitude quaternion to value given by euler angles.
         :param euler_init: ([float]) the roll, pitch, yaw values to initialize quaternion to.
         """
+        # used
         if euler_init is not None:
             self._from_euler_angles(euler_init)
         else:
@@ -664,6 +688,7 @@ class AttitudeQuaternion:
         :param timestep: (int) timestep
         :return: (float or dict) requested euler angles.
         """
+        # used
         # get attitude quaternion from history
         e0, e1, e2, e3 = self.history[timestep]
 
@@ -691,6 +716,7 @@ class AttitudeQuaternion:
         Set value of attitude quaternion from euler angles.
         :param euler: ([float]) euler angles roll, pitch, yaw.
         """
+        # used
         # get euler angles
         phi, theta, psi = euler
 
@@ -716,6 +742,7 @@ class AttitudeQuaternion:
         :param quaternion: ([float]) new quaternion value
         :param save: (bool) whether to commit value to history of attitude.
         """
+        # used
         self.quaternion = quaternion
         if save:
             self.history.append(self.quaternion)
@@ -741,6 +768,7 @@ class Wind:
         :param turbulence_intensity: (string) intensity of turbulence
         :param dt: (float) integration step length
         """
+        # used
         self.turbulence = turbulence
         self.mag_min = mag_min
         self.mag_max = mag_max
@@ -762,8 +790,8 @@ class Wind:
     def seed(self, seed=None):
         """
         Seed random number generator of object
-
         """
+        # used
         self.np_random = np.random.RandomState(seed)
         if self.turbulence:
             self.dryden.seed(seed)
@@ -773,9 +801,9 @@ class Wind:
         Reset wind object to initial state
         :param value: ([float] or float) strength and direction of the n, e and d components or magnitude of the steady wind.
         """
-
+        # used
         # if no values provided:
-        #   sample values uniformly from min and max values if provided else get values from components
+        # sample values uniformly from min and max values if provided else get values from components
         # otherwise set values
         if value is None or isinstance(value, float) or isinstance(value, int):
             if value is None and self.mag_min is None and self.mag_max is None:
@@ -806,6 +834,7 @@ class Wind:
         Set value to wind value at timestep t
         :param timestep: (int) timestep
         """
+        # used
         value = self.steady
 
         if self.turbulence:
@@ -820,6 +849,7 @@ class Wind:
         :param timestep: (int) timestep
         :return: ([float]) linear component of turbulence at given timestep
         """
+        # used
         return self._get_turbulence(timestep, "linear")
 
     def get_turbulence_angular(self, timestep):
@@ -869,6 +899,7 @@ class Plot:
         :param dt: (float) integration step length, required when x_unit is seconds.
         :param plot_quantity: (string) the attribute of the states that is plotted
         """
+        # used
         self.id = id
         self.title = title
 
@@ -893,6 +924,7 @@ class Plot:
         Add state to plot
         :param var: (string) name of state
         """
+        # used
         if self.variables is None:
             self.variables = []
         self.variables.append(var)
@@ -907,6 +939,7 @@ class Plot:
         """
         Close figure
         """
+        # used
         for var in self.variables:
             var.close_plot(self.id)
 
@@ -918,6 +951,7 @@ class Plot:
         :param fig: (matplotlib.pyplot.figure) optional parent figure
         :param targets: (dict) target values for states in state name - values pairs
         """
+        # used
         first = False
         if self.axis is None:
             first = True
@@ -1028,8 +1062,10 @@ class PyFly:
         :param config_path: (string) Path to json configuration file for simulator
         :param parameter_path: (string) Path to file containing required aircraft parameters
         """
+        # used
 
-        def set_config_attrs(parent, kws):  # TODO: function definition inside function?
+        def set_config_attrs(parent, kws):
+            # used
             for attr, val in kws.items():
                 if isinstance(val, dict):
                     set_config_attrs(parent[attr], val)
@@ -1050,7 +1086,11 @@ class PyFly:
         self.I = np.array(
             [
                 [self.params["Jx"], 0, -self.params["Jxz"]],
-                [0, self.params["Jy"], 0,],
+                [
+                    0,
+                    self.params["Jy"],
+                    0,
+                ],
                 [-self.params["Jxz"], 0, self.params["Jz"]],
             ]
         )
@@ -1209,6 +1249,7 @@ class PyFly:
         Seed the random number generator of the flight simulator
         :param seed: (int) seed for random state
         """
+        # used
         for i, var in enumerate(self.state.values()):
             var.seed(seed + i)
 
@@ -1219,6 +1260,7 @@ class PyFly:
         Reset state of simulator. Must be called before first use.
         :param state: (dict) set initial value of states to given value.
         """
+        # used
         self.cur_sim_step = 0
 
         # reset variables except actual state, wind, energy and control variables
@@ -1240,6 +1282,7 @@ class PyFly:
         if state is not None:
             if "wind" in state:
                 wind_init = state["wind"]
+            # check if wind for all directions are specified - north, east, down
             elif all([comp in state for comp in ["wind_n", "wind_e", "wind_d"]]):
                 wind_init = [state["wind_n"], state["wind_e"], state["wind_d"]]
         self.wind.reset(wind_init, turbulence_noise)
@@ -1270,6 +1313,7 @@ class PyFly:
         :param viewer: (dict) viewer object with figure and gridspec that pyfly will attach plots to
         :param targets: (dict) string list pairs of states with target values added to plots containing these states.
         """
+        # used
         if mode == "plot":
             # set viewer
             if viewer is not None:
@@ -1311,6 +1355,7 @@ class PyFly:
         :param commands: ([float]) actuator setpoints
         :return: (bool, dict) whether integration step was successfully performed, reason for step failure
         """
+        # used
         success = True
         info = {}
 
@@ -1375,6 +1420,7 @@ class PyFly:
         :param attribute: (string) state attribute to retrieve
         :return: ([?]) list of attribute for each state
         """
+        # used
         return [getattr(self.state[state_name], attribute) for state_name in states]
 
     def save_history(self, path, states):
@@ -1383,6 +1429,7 @@ class PyFly:
         :param path: (string) path to save history to
         :param states: (string or [string]) names of states to save
         """
+        # used
         res = {}
         if states == "all":
             save_states = self.state.keys()
@@ -1402,7 +1449,7 @@ class PyFly:
         :param control_sp: ([float]) setpoints for actuators
         :return: ([float]) right hand side of differential equations
         """
-
+        # used
         # TODO: describe
 
         if t > 0:
@@ -1437,6 +1484,7 @@ class PyFly:
         :param controls: ([float]) state of actutators
         :return: ([float], [float]) forces and moments in x, y, z of aircraft frame
         """
+        # used
         # get actuator state
         elevator, aileron, rudder, throttle = controls
 
@@ -1596,6 +1644,7 @@ class PyFly:
         :param omega: ([float]) angular velocity
         :return: ([float]) right hand side of quaternion attitude differential equation.
         """
+        # used
         # TODO: describe
         p, q, r = omega
         T = np.array([[0, -p, -q, -r], [p, 0, r, -q], [q, -r, 0, p], [r, q, -p, 0]])
@@ -1609,6 +1658,7 @@ class PyFly:
         :param tau: ([float]) moments acting on aircraft
         :return: ([float]) right hand side of angular velocity differential equation.
         """
+        # used
         # TODO: describe
         return np.array(
             [
@@ -1635,6 +1685,7 @@ class PyFly:
         :param f: ([float]) forces acting on aircraft
         :return: ([float]) right hand side of linear velocity differntial equation.
         """
+        # used
         # TODO: describe
         v_dot = np.array(
             [
@@ -1654,6 +1705,7 @@ class PyFly:
         :param attitude: ([float]) attitude quaternion
         :return: ([float]) right hand side of position differntial equation.
         """
+        # used
         # TODO: describe
 
         e0, e1, e2, e3 = attitude
@@ -1685,6 +1737,7 @@ class PyFly:
         :param setpoints: ([float]) setpoint for actuators
         :return: ([float]) right hand side of actuator differential equation.
         """
+        # used
         return self.actuation.rhs(setpoints)
 
     def _rot_b_v(self, attitude):
@@ -1693,7 +1746,7 @@ class PyFly:
         :param Theta: ([float]) vector to rotate, either as Euler angles or quaternion
         :return: ([float]) rotated vector
         """
-
+        # used
         # apply transformation matrix
         if len(attitude) == 3:
             phi, th, psi = attitude
@@ -1775,6 +1828,7 @@ class PyFly:
         :param vel: ([float]) linear velocity
         :return: ([float]) airspeed factors Va, alpha, beta
         """
+        # used
         if self.wind.turbulence:
             turbulence = self.wind.get_turbulence_linear(self.cur_sim_step)
         else:
@@ -1795,6 +1849,7 @@ class PyFly:
         :param ode_sol: ([float]) solution vector from ODE solver
         :param save: (bool) whether to save values to state history, i.e. whether solution represents final step solution or intermediate values during integration.
         """
+        # used
         self.state["attitude"].set_value(ode_sol[:4] / np.linalg.norm(ode_sol[:4]))
         if save:
             euler_angles = self.state["attitude"].as_euler_angle()
